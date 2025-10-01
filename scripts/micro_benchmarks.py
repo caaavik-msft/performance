@@ -12,7 +12,6 @@ from logging import getLogger
 from os import path
 from subprocess import CalledProcessError
 from traceback import format_exc
-from typing import Any
 
 import csv
 import sys
@@ -38,6 +37,22 @@ def get_supported_configurations() -> list[str]:
     projects is 'Release'
     '''
     return ['Release', 'Debug']
+
+class CommonMicroBenchmarksArgs:
+    configuration: str
+    frameworks: list[str]
+    incremental: str
+    enable_pmc: bool
+    filter: list[str]
+    corerun: list[str]
+    cli: str | None
+    wasm: bool
+    bdn_arguments: list[str]
+    bdn_artifacts: str | None
+    run_isolated: bool
+    csprojfile: dotnet.CSharpProjFile
+    bin_directory: str
+    resume: bool
 
 
 def add_arguments(parser: ArgumentParser) -> ArgumentParser:
@@ -207,8 +222,19 @@ def add_arguments(parser: ArgumentParser) -> ArgumentParser:
         help='Root of the bin directory',
     )
 
+    parser.add_argument(
+        '--resume',
+        dest='resume',
+        required=False,
+        default=False,
+        action='store_true',
+        help='Resume a previous run from existing benchmark results',
+    )
+
     return parser
 
+class MicroBenchmarksArgs(CommonMicroBenchmarksArgs):
+    verbose: bool
 
 def __process_arguments(args: list[str]):
     parser = ArgumentParser(
@@ -224,10 +250,10 @@ def __process_arguments(args: list[str]):
     )
 
     parser = add_arguments(parser)
-    return parser.parse_args(args)
+    return parser.parse_args(args, MicroBenchmarksArgs())
 
 
-def __get_benchmarkdotnet_arguments(framework: str, args: Any) -> list[str]:
+def __get_benchmarkdotnet_arguments(framework: str, args: CommonMicroBenchmarksArgs) -> list[str]:
     run_args: list[str] = []
     if args.corerun:
         run_args += ['--coreRun'] + args.corerun
@@ -344,7 +370,7 @@ def run(
         framework: str,
         run_isolated: bool,
         verbose: bool,
-        args: Any) -> bool:
+        args: CommonMicroBenchmarksArgs) -> bool:
     '''Runs the benchmarks, returns True for a zero status code and False otherwise.'''
     __log_script_header("Running .NET micro benchmarks for '{}'".format(
         framework

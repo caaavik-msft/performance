@@ -2,8 +2,6 @@
 pre-command
 '''
 import sys
-import shutil
-import os.path
 from performance.logger import setup_loggers
 from shared import const
 from shared.precommands import PreCommands

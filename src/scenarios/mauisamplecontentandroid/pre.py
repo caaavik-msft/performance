@@ -1,7 +1,6 @@
 '''
 pre-command
 '''
-import shutil
 import sys
 from performance.logger import setup_loggers, getLogger
 from shared import const
@@ -12,7 +11,7 @@ from test import EXENAME
 
 setup_loggers(True)
 logger = getLogger(__name__)
-logger.info(f"Starting pre-command for MAUI Sample Content template app (dotnet new maui --sample-content)")
+logger.info("Starting pre-command for MAUI Sample Content template app (dotnet new maui --sample-content)")
 
 precommands = PreCommands()
 

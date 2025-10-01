@@ -6,12 +6,11 @@ import sys
 import os
 import json
 from shutil import copytree, copy
-from typing import Optional
 from performance.common import helixpayload, extension, runninginlab, get_artifacts_directory, get_packages_directory, RunCommand
 from performance.constants import UPLOAD_CONTAINER, UPLOAD_STORAGE_URI, UPLOAD_QUEUE
 from dotnet import CSharpProject, CSharpProjFile
 from shared.util import helixworkitempayload, helixuploaddir, getruntimeidentifier
-from shared.const import *
+from shared.const import TRACEDIR
 class SODWrapper(object):
     '''
     Wraps sod.exe, building it if necessary.
@@ -54,7 +53,7 @@ class SODWrapper(object):
     def _setsodpath(self, path: str):
         self.sodexe = os.path.join(path, 'SizeOnDisk%s' % extension())
 
-    def runtests(self, scenarioname: Optional[str], dirs: str, upload_to_perflab_container: bool, artifact: str):
+    def runtests(self, scenarioname: str | None, dirs: str, upload_to_perflab_container: bool, artifact: str):
         '''
         Runs tests through sod tool
         '''

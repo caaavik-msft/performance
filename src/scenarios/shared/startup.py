@@ -9,9 +9,10 @@ from performance.common import extension, helixpayload, runninginlab, get_artifa
 from performance.constants import UPLOAD_CONTAINER, UPLOAD_STORAGE_URI, UPLOAD_QUEUE
 from dotnet import CSharpProject, CSharpProjFile
 from shared.util import helixworkitempayload, helixuploaddir, getruntimeidentifier
-from shared.const import *
+from shared.const import TRACEDIR
 from shared.testtraits import TestTraits
 from subprocess import CalledProcessError
+
 class StartupWrapper(object):
     '''
     Wraps startup.exe, building it if necessary.

@@ -8,7 +8,6 @@ import shutil
 import subprocess
 from logging import getLogger
 from argparse import ArgumentParser
-from typing import Optional
 from dotnet import CSharpProject, CSharpProjFile
 from shared import const
 from shared.crossgen import CrossgenArguments
@@ -93,7 +92,7 @@ class PreCommands:
         self.framework = args.framework
         self.runtime_identifier = args.runtime
         self.nativeaot = args.nativeaot
-        self.msbuild = args.msbuild
+        self.msbuild: str | None = args.msbuild
         print(self.msbuild)
         self.msbuildstatic = args.msbuildstatic
         self.binlog = args.binlog
@@ -119,10 +118,10 @@ class PreCommands:
             bin_dir: str,
             exename: str,
             working_directory: str,
-            language: Optional[str] = None,
+            language: str | None = None,
             no_https: bool = False,
             no_restore: bool = True,
-            extra_args: Optional[list[str]] = None):
+            extra_args: list[str] | None = None):
         'makes a new app with the given template'
         self.project = CSharpProject.new(template=template,
                                  output_dir=output_dir,
@@ -216,12 +215,14 @@ class PreCommands:
             build_args.append("/p:EnableWindowsTargeting=true")
             self._publish(configuration=self.configuration, runtime_identifier=self.runtime_identifier, framework=self.framework, output=self.output, build_args=build_args)
         if self.operation == CROSSGEN:
+            assert self.crossgen_arguments.coreroot is not None
             startup_args = [
                 os.path.join(self.crossgen_arguments.coreroot, 'crossgen%s' % extension()),
             ]
             startup_args += self.crossgen_arguments.get_crossgen_command_line()
             RunCommand(startup_args, verbose=True).run(self.crossgen_arguments.coreroot)
         if self.operation == CROSSGEN2:
+            assert self.crossgen_arguments.coreroot is not None
             startup_args = [
                 os.path.join(self.crossgen_arguments.coreroot, 'corerun%s' % extension()),
                 os.path.join(self.crossgen_arguments.coreroot, 'crossgen2', 'crossgen2.dll'),
@@ -267,8 +268,8 @@ class PreCommands:
     def add_perflab_file(self, language_file_extension: str = 'cs'):
         projpath = os.path.dirname(self.project.csproj_file)
         staticpath = os.path.join(get_repo_root_path(), "src", "scenarios", "staticdeps")
-        if helixpayload():
-            staticpath = os.path.join(helixpayload(), "staticdeps")
+        if (helix_payload := helixpayload()):
+            staticpath = os.path.join(helix_payload, "staticdeps")
         shutil.copyfile(os.path.join(staticpath, f"PerfLab.{language_file_extension}"), os.path.join(projpath, f"PerfLab.{language_file_extension}"))
 
     def install_workload(self, workloadid: str, install_args: list[str] = ["--skip-manifest-update"]):
@@ -320,9 +321,9 @@ class PreCommands:
             propertystring = f'\n  <PropertyGroup>\n    <{propertyname}>{propertyvalue}</{propertyname}>\n  </PropertyGroup>'
             insert_after(projectfile, r'</PropertyGroup>', propertystring )
 
-    def _parsemsbuildproperties(self) -> list:
+    def _parsemsbuildproperties(self):
         if self.msbuild:
-            proplist = list()
+            proplist: list[str] = []
             for propertyarg in self.msbuild.split(';'):
                 proplist.append(propertyarg)
             return proplist
@@ -336,7 +337,7 @@ class PreCommands:
             else:
                 replace_line(projectfile, r'<TargetFramework>.*?</TargetFramework>', f'<TargetFramework>{self.framework}</TargetFramework>')
 
-    def _publish(self, configuration: str, framework: str, runtime_identifier: Optional[str] = None, output: Optional[str] = None, build_args: list[str] = []):
+    def _publish(self, configuration: str, framework: str, runtime_identifier: str | None = None, output: str | None = None, build_args: list[str] = []):
         self.project.publish(configuration,
                              output or const.PUBDIR,
                              True,
@@ -352,7 +353,7 @@ class PreCommands:
                              verbose=True,
                              args=(['-bl:%s-restore.binlog' % self.binlog] if self.binlog else []) + restore_args)
 
-    def _build(self, configuration: str, framework: str, output: Optional[str] = None, build_args: list[str] = []):
+    def _build(self, configuration: str, framework: str, output: str | None = None, build_args: list[str] = []):
         self.project.build(configuration,
                            True,
                            get_packages_directory(),

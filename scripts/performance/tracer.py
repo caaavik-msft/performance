@@ -1,6 +1,7 @@
 import functools
 from logging import getLogger
-from typing import TYPE_CHECKING, Callable, Optional, TypeVar
+from collections.abc import Callable
+from typing import ParamSpec, TypeVar
 
 class TracingStateManager:
     '''A class to manage the state of tracing.'''
@@ -23,7 +24,7 @@ def setup_tracing():
     try:
         from opentelemetry import trace
         from opentelemetry.sdk.trace import TracerProvider
-    except:
+    except ImportError:
         return
 
     provider = TracerProvider()
@@ -38,7 +39,7 @@ def enable_trace_console_exporter():
     try:
         from opentelemetry import trace
         from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
-    except:
+    except ImportError:
         getLogger().warning('OpenTelemetry not imported. Skipping OpenTelemetry console logger initialization.')
         return
 
@@ -59,18 +60,7 @@ def is_console_exporter_enabled() -> bool:
     '''Return whether the console exporter has been enabled.'''
     return tracing_state_manager.get_console_exporter_enabled()
 
-# ParamSpec was added in Python 3.10, so we need to use typing_extensions for older versions.
-# But, to avoid needing to install this to run the script, we define a placeholder if not type checking.
-if TYPE_CHECKING:
-    from typing_extensions import ParamSpec
-    P = ParamSpec("P")
-else:
-    from typing import Any
-    class _ParamSpecPlaceholder:
-        args: Any = object()
-        kwargs: Any = object()
-    P = _ParamSpecPlaceholder()
-
+P = ParamSpec("P")
 R = TypeVar("R")
 class AwareTracer:
     """
@@ -78,16 +68,12 @@ class AwareTracer:
     When not installed, the tracer is a no-op and the decorated functions are executed as if the decorator was not there..
     """
     def __init__(self, name: str = "dotnet.performance") -> None:
-        if TYPE_CHECKING:
-            from opentelemetry.trace import Tracer # pyright: ignore[reportMissingTypeStubs]
-            self._tracer: Optional[Tracer]
-            
         try:
+            from opentelemetry.trace import Tracer # pyright: ignore[reportMissingTypeStubs]
             from opentelemetry import trace
+            self._tracer: Tracer | None = trace.get_tracer(name)
         except ImportError:
             self._tracer = None
-        else:
-            self._tracer = trace.get_tracer(name)
 
     def start_as_current_span(self, name: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
         """

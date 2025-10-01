@@ -1,5 +1,3 @@
-from typing import Optional
-
 class ChannelMap():
     channel_map = {
         'main': {
@@ -213,7 +211,7 @@ class ChannelMap():
             raise Exception('Channel %s is not supported. Supported channels %s' % (channel, ChannelMap.get_supported_channels()))
 
     @staticmethod
-    def get_quality_from_channel(channel: str) -> Optional[str]:
+    def get_quality_from_channel(channel: str) -> str | None:
         '''Translate Target Framework Moniker (TFM) to channel name'''
         if 'quality' in ChannelMap.channel_map[channel]:
             return ChannelMap.channel_map[channel]['quality']

@@ -11,9 +11,9 @@ import tempfile
 from traceback import format_exc
 import urllib.request
 import xml.etree.ElementTree as ET
-from typing import Any, Optional
+from typing import Any
 
-from build_runtime_payload import *
+from build_runtime_payload import build_coreroot_payload, build_mono_payload, build_monoaot_payload, build_wasm_payload
 import ci_setup
 from performance.common import RunCommand, get_msbuild_property, set_environment_variable
 from performance.logger import setup_loggers
@@ -37,7 +37,7 @@ def output_counters_for_crank(reports: list[Any]):
                         "value": result
                     })
 
-                if counter["topCounter"] == True:
+                if counter["topCounter"]:
                     statistics["metadata"].append({
                         "source": "BenchmarkDotNet",
                         "name": measurement_name,
@@ -58,42 +58,41 @@ class RunPerformanceJobArgs:
     run_kind: str
     architecture: str
     os_group: str
-    
-    logical_machine: Optional[str] = None
-    queue: Optional[str] = None
-    framework: Optional[str] = None
+    logical_machine: str | None = None
+    queue: str | None = None
+    framework: str | None = None
     performance_repo_dir: str = "."
-    runtime_repo_dir: Optional[str] = None
-    core_root_dir: Optional[str] = None
-    baseline_core_root_dir: Optional[str] = None
-    mono_dotnet_dir: Optional[str] = None
-    libraries_download_dir: Optional[str] = None
-    versions_props_path: Optional[str] = None
-    browser_versions_props_path: Optional[str] = None
-    built_app_dir: Optional[str] = None
-    extra_bdn_args: Optional[str] = None
+    runtime_repo_dir: str | None = None
+    core_root_dir: str | None = None
+    baseline_core_root_dir: str | None = None
+    mono_dotnet_dir: str | None = None
+    libraries_download_dir: str | None = None
+    versions_props_path: str | None = None
+    browser_versions_props_path: str | None = None
+    built_app_dir: str | None = None
+    extra_bdn_args: str | None = None
     run_categories: str = 'Libraries Runtime'
-    helix_access_token: Optional[str] = os.environ.get("HelixAccessToken")
-    os_sub_group: Optional[str] = None
-    project_file: Optional[str] = None
-    partition_count: Optional[int] = None
+    helix_access_token: str | None = os.environ.get("HelixAccessToken")
+    os_sub_group: str | None = None
+    project_file: str | None = None
+    partition_count: int | None = None
     build_repository_name: str = os.environ.get("BUILD_REPOSITORY_NAME", "dotnet/performance")
     build_source_branch: str = os.environ.get("BUILD_SOURCEBRANCH", "main")
     build_number: str = os.environ.get("BUILD_BUILDNUMBER", "local")
-    build_definition_name: Optional[str] = os.environ.get("BUILD_DEFINITIONNAME")
-    build_reason: Optional[str] = os.environ.get("BUILD_REASON")
+    build_definition_name: str | None = os.environ.get("BUILD_DEFINITIONNAME")
+    build_reason: str | None = os.environ.get("BUILD_REASON")
     internal: bool = False
-    pgo_run_type: Optional[str] = None
-    physical_promotion_run_type: Optional[str] = None
-    r2r_run_type: Optional[str] = None
-    experiment_name: Optional[str] = None
+    pgo_run_type: str | None = None
+    physical_promotion_run_type: str | None = None
+    r2r_run_type: str | None = None
+    experiment_name: str | None = None
     codegen_type: str = "JIT"
     linking_type: str = "dynamic"
     runtime_type: str = "coreclr"
-    affinity: Optional[str] = "0"
+    affinity: str | None = "0"
     run_env_vars: dict[str, str] = field(default_factory=dict[str, str])
     is_scenario: bool = False
-    runtime_flavor: Optional[str] = None
+    runtime_flavor: str | None = None
     local_build: bool = False
     compare: bool = False
     only_sanity_check: bool = False
@@ -101,18 +100,18 @@ class RunPerformanceJobArgs:
     ios_strip_symbols: bool = False
     javascript_engine: str = "NoJS"
     send_to_helix: bool = False
-    channel: Optional[str] = None
-    perf_repo_hash: Optional[str] = os.environ.get("BUILD_SOURCEVERSION")
+    channel: str | None = None
+    perf_repo_hash: str | None = os.environ.get("BUILD_SOURCEVERSION")
     performance_repo_ci: bool = False
     use_local_commit_time: bool = False
-    javascript_engine_path: Optional[str] = None
-    maui_version: Optional[str] = None
-    pdn_path: Optional[str] = None
-    os_version: Optional[str] = None
-    dotnet_version_link: Optional[str] = None
-    target_csproj: Optional[str] = None
+    javascript_engine_path: str | None = None
+    maui_version: str | None = None
+    pdn_path: str | None = None
+    os_version: str | None = None
+    dotnet_version_link: str | None = None
+    target_csproj: str | None = None
     build_config: str = "Release"
-    live_libraries_build_config: Optional[str] = None
+    live_libraries_build_config: str | None = None
     cross_build: bool = False
 
 def get_pre_commands(
@@ -163,13 +162,13 @@ def get_pre_commands(
 
         # Install python pacakges needed to upload results to azure storage
         install_prerequisites += [
-            f"python -m pip install -U pip",
-            f"python -m pip install azure.storage.blob==12.13.0",
-            f"python -m pip install azure.storage.queue==12.4.0",
-            f"python -m pip install azure.identity==1.16.1",
-            f"python -m pip install urllib3==1.26.19",
-            f"python -m pip install opentelemetry-api==1.23.0",
-            f"python -m pip install opentelemetry-sdk==1.23.0",
+            "python -m pip install -U pip",
+            "python -m pip install azure.storage.blob==12.13.0",
+            "python -m pip install azure.storage.queue==12.4.0",
+            "python -m pip install azure.identity==1.16.1",
+            "python -m pip install urllib3==1.26.19",
+            "python -m pip install opentelemetry-api==1.23.0",
+            "python -m pip install opentelemetry-sdk==1.23.0",
         ]
 
         # Install prereqs for NodeJS https://github.com/dotnet/runtime/pull/40667 
@@ -327,13 +326,13 @@ def get_bdn_arguments(
         runtime_type: str,
         codegen_type: str,
         only_sanity_check: bool = False,
-        affinity: Optional[str] = None,
-        experiment_name: Optional[str] = None,
-        javascript_engine: Optional[str] = None,
-        javascript_engine_path: Optional[str] = None,
-        product_version: Optional[str] = None,
-        corerun_payload_dir: Optional[str] = None,
-        extra_bdn_args: Optional[str] = None):
+        affinity: str | None = None,
+        experiment_name: str | None = None,
+        javascript_engine: str | None = None,
+        javascript_engine_path: str | None = None,
+        product_version: str | None = None,
+        corerun_payload_dir: str | None = None,
+        extra_bdn_args: str | None = None):
     
     bdn_arguments = ["--anyCategories", run_categories]
 
@@ -381,6 +380,7 @@ def get_bdn_arguments(
         if javascript_engine == "v8":
             wasm_args += ["--module"]
 
+        assert javascript_engine_path is not None
         bdn_arguments += [
             "--wasmEngine", javascript_engine_path,
             f"\\\"--wasmArgs={' '.join(wasm_args)}\\\"",
@@ -424,15 +424,15 @@ def get_run_configurations(
         run_kind: str,
         runtime_type: str,
         codegen_type: str,
-        pgo_run_type: Optional[str] = None,
-        physical_promotion_run_type: Optional[str] = None,
-        r2r_run_type: Optional[str] = None,
-        experiment_name: Optional[str] = None,
-        linking_type: Optional[str] = None,
-        runtime_flavor: Optional[str] = None,
+        pgo_run_type: str | None = None,
+        physical_promotion_run_type: str | None = None,
+        r2r_run_type: str | None = None,
+        experiment_name: str | None = None,
+        linking_type: str | None = None,
+        runtime_flavor: str | None = None,
         ios_llvm_build: bool = False,
         ios_strip_symbols: bool = False,
-        javascript_engine: Optional[str] = None):
+        javascript_engine: str | None = None):
     
     configurations = { "CompilationMode": "Tiered", "RunKind": run_kind }
 
@@ -465,7 +465,7 @@ def get_run_configurations(
 
     # dotnet/runtime Android sample app scenarios
     if run_kind == "android_scenarios":
-        if not runtime_flavor in ("mono", "coreclr"):
+        if runtime_flavor not in ("mono", "coreclr"):
             raise Exception("Runtime flavor must be specified for runtime android scenarios")
         configurations["CodegenType"] = str(codegen_type)
         configurations["LinkingType"] = str(linking_type)
@@ -473,7 +473,7 @@ def get_run_configurations(
 
     # dotnet/runtime iOS sample app scenarios
     if run_kind == "ios_scenarios":
-        if not runtime_flavor in ("mono", "coreclr"):
+        if runtime_flavor not in ("mono", "coreclr"):
             raise Exception("Runtime flavor must be specified for runtime ios scenarios")
         configurations["CodegenType"] = str(codegen_type)
         configurations["RuntimeType"] = str(runtime_flavor)
@@ -484,14 +484,14 @@ def get_run_configurations(
 
     # .NET Android and .NET MAUI Android sample app scenarios
     if run_kind == "maui_scenarios_android":
-        if not runtime_flavor in ("mono", "coreclr"):
+        if runtime_flavor not in ("mono", "coreclr"):
             raise Exception("Runtime flavor must be specified for maui_scenarios_android")
         configurations["CodegenType"] = str(codegen_type)
         configurations["RuntimeType"] = str(runtime_flavor)
 
     # .NET iOS and .NET MAUI iOS sample app scenarios
     if run_kind == "maui_scenarios_ios":
-        if not runtime_flavor in ("mono", "coreclr"):
+        if runtime_flavor not in ("mono", "coreclr"):
             raise Exception("Runtime flavor must be specified for maui_scenarios_ios")
         configurations["CodegenType"] = str(codegen_type)
         configurations["RuntimeType"] = str(runtime_flavor)
@@ -1035,7 +1035,7 @@ def run_performance_job(args: RunPerformanceJobArgs):
         if args.architecture == "arm64":
             dotnet_dir = os.path.join(ci_setup_arguments.install_dir, "")
             arm64_dotnet_dir = os.path.join(args.performance_repo_dir, "tools", "dotnet", "arm64")
-            getLogger().info(f"Copying arm64 dotnet directory to payload dotnet directory")
+            getLogger().info("Copying arm64 dotnet directory to payload dotnet directory")
             shutil.rmtree(dotnet_dir)
             shutil.copytree(arm64_dotnet_dir, dotnet_dir)
 
@@ -1046,7 +1046,7 @@ def run_performance_job(args: RunPerformanceJobArgs):
                 archive_path = shutil.make_archive(os.path.join(temp_dir, 'workitem'), 'zip', work_item_dir)
                 shutil.move(archive_path, f"{work_item_dir}.zip")
 
-    def get_bdn_args_for_coreroot_dir(coreroot_dir: Optional[str]):
+    def get_bdn_args_for_coreroot_dir(coreroot_dir: str | None):
         return get_bdn_arguments(
             args.run_categories,
             args.internal,

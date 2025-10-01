@@ -8,7 +8,6 @@ import sys
 from datetime import datetime, timezone
 
 from subprocess import check_output
-from typing import Optional
 
 from performance.common import get_machine_architecture, get_repo_root_path, set_environment_variable
 from performance.common import get_tools_directory
@@ -25,7 +24,7 @@ def init_tools(
         dotnet_versions: list[str],
         channel: str,
         verbose: bool,
-        install_dir: Optional[str]=None) -> None:
+        install_dir: str | None=None) -> None:
     '''
     Install tools used by this repository into the tools folder.
     This function writes a semaphore file when tools have been successfully
@@ -283,32 +282,32 @@ class CiSetupArgs:
             self,
             channel: str,
             quiet: bool = False,
-            commit_sha: Optional[str] = None,
-            repository: Optional[str] = None,
+            commit_sha: str | None = None,
+            repository: str | None = None,
             architecture: str = get_machine_architecture(),
-            dotnet_path: Optional[str] = None,
+            dotnet_path: str | None = None,
             dotnet_versions: list[str] = [],
-            install_dir: Optional[str] = None,
+            install_dir: str | None = None,
             build_configs: list[str] = [],
-            pgo_status: Optional[str] = None,
+            pgo_status: str | None = None,
             get_perf_hash: bool = False,
             perf_hash: str = 'testSha',
-            cli: Optional[str] = None,
-            commit_time: Optional[str] = None,
+            cli: str | None = None,
+            commit_time: str | None = None,
             local_build: bool = False,
-            branch: Optional[str] = None,
+            branch: str | None = None,
             output_file: str = os.path.join(get_tools_directory(), 'machine-setup'),
             not_in_lab: bool = False,
             queue: str = 'testQueue',
             build_number: str = '1234.1',
             locale: str = 'en-US',
             maui_version: str = '',
-            affinity: Optional[str] = None,
-            run_env_vars: Optional[list[str]] = None,
+            affinity: str | None = None,
+            run_env_vars: list[str] | None = None,
             target_windows: bool = True,
-            physical_promotion_status: Optional[str] = None,
-            r2r_status: Optional[str] = None,
-            experiment_name: Optional[str] = None):
+            physical_promotion_status: str | None = None,
+            r2r_status: str | None = None,
+            experiment_name: str | None = None):
         self.channel = channel
         self.quiet = quiet
         self.commit_sha = commit_sha

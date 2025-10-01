@@ -1,9 +1,7 @@
 '''
 Localized Blazor Wasm Template
 '''
-import os
 from shared.runner import TestTraits, Runner
-from shared.const import APPDIR
 
 EXENAME = 'blazorlocalized'
 

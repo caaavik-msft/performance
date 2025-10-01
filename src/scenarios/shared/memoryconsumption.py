@@ -9,7 +9,7 @@ from performance.common import extension, helixpayload, runninginlab, get_artifa
 from performance.constants import UPLOAD_CONTAINER, UPLOAD_STORAGE_URI, UPLOAD_QUEUE
 from dotnet import CSharpProject, CSharpProjFile
 from shared.util import helixworkitempayload, helixuploaddir, getruntimeidentifier
-from shared.const import *
+from shared.const import TRACEDIR
 from shared.testtraits import TestTraits
 from subprocess import CalledProcessError
 class MemoryConsumptionWrapper(object):
@@ -19,10 +19,10 @@ class MemoryConsumptionWrapper(object):
     def __init__(self):
         memoryconsumptiondir = 'memoryconsumption'
         self.reportjson = os.path.join(TRACEDIR, 'perf-lab-report.json')
-        if helixpayload() and os.path.exists(os.path.join(helixpayload(), memoryconsumptiondir)):
-            self._setmemoryconsumptionpath(os.path.join(helixpayload(), memoryconsumptiondir))
-        elif helixworkitempayload() and os.path.exists(os.path.join(helixworkitempayload(), memoryconsumptiondir)):
-            self._setmemoryconsumptionpath(os.path.join(helixworkitempayload(), memoryconsumptiondir))
+        if (helix_payload := helixpayload()) and os.path.exists(os.path.join(helix_payload, memoryconsumptiondir)):
+            self._setmemoryconsumptionpath(os.path.join(helix_payload, memoryconsumptiondir))
+        elif (helix_workitem_payload := helixworkitempayload()) and os.path.exists(os.path.join(helix_workitem_payload, memoryconsumptiondir)):
+            self._setmemoryconsumptionpath(os.path.join(helix_workitem_payload, memoryconsumptiondir))
         else:
             relpath = os.path.join(get_artifacts_directory(), memoryconsumptiondir)
             memoryconsumptionproj = os.path.join('..',

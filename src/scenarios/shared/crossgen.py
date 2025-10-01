@@ -7,7 +7,7 @@ import os
 
 from logging import getLogger
 from argparse import ArgumentParser
-from typing import Any, Optional
+from typing import Any
 from shared import const
 
 class CrossgenArguments:
@@ -18,10 +18,10 @@ class CrossgenArguments:
     '''
 
     def __init__(self):
-        self.coreroot: str = None
-        self.singlefile: Optional[str] = None
-        self.compositefile: Optional[str] = None
-        self.singlethreaded: Optional[bool] = None
+        self.coreroot: str | None = None
+        self.singlefile: str | None = None
+        self.compositefile: str | None = None
+        self.singlethreaded: bool | None = None
 
     def add_crossgen_arguments(self, parser: ArgumentParser):
         "Arguments to generate AOT code with Crossgen"
@@ -125,12 +125,14 @@ Suppress internal Crossgen2 parallelism
 
     def get_crossgen_command_line(self) -> list[str]:
         "Returns the computed crossgen command line arguments"
+        assert self.singlefile is not None
         filename, ext = os.path.splitext(self.singlefile)
         outputdir = os.path.join(os.getcwd(), const.CROSSGENDIR)
         if not os.path.exists(outputdir):
             os.mkdir(outputdir)
         outputfile = os.path.join(outputdir, filename+'.ni'+ext )
 
+        assert self.coreroot is not None
         crossgenargs = [
             '/nologo',
             '/out', outputfile,
@@ -146,6 +148,7 @@ Suppress internal Crossgen2 parallelism
 
         if compiletype == const.CROSSGEN2_SINGLEFILE:
             referencefilenames = ['System.*.dll', 'Microsoft.*.dll', 'netstandard.dll', 'mscorlib.dll']
+            assert self.singlefile is not None
             # single assembly filename: example.dll
             filename, ext = os.path.splitext(self.singlefile)
             outputdir = os.path.join(os.getcwd(), const.CROSSGENDIR)
@@ -153,6 +156,7 @@ Suppress internal Crossgen2 parallelism
                 os.mkdir(outputdir)
             outputfile = os.path.join(outputdir, filename+'.ni'+ext )
             
+            assert self.coreroot is not None
             crossgen2args = [
                 os.path.join(self.coreroot, self.singlefile),
                 '-o', outputfile,
@@ -164,6 +168,7 @@ Suppress internal Crossgen2 parallelism
         
         elif compiletype == const.CROSSGEN2_COMPOSITE:
             # composite rsp filename: ..\example.dll.rsp
+            assert self.compositefile is not None
             dllname, _ = os.path.splitext(os.path.basename(self.compositefile))
             filename, ext = os.path.splitext(dllname)
             outputdir = os.path.join(os.getcwd(), const.CROSSGENDIR)
@@ -177,6 +182,10 @@ Suppress internal Crossgen2 parallelism
                 '-O',
                 '@%s' % (self.compositefile)
             ]
+
+        else:
+            getLogger().error("Invalid Crossgen2 compile type")
+            sys.exit(1)
             
         if self.singlethreaded:
             crossgen2args += ['--parallelism', '1']
@@ -191,8 +200,13 @@ Suppress internal Crossgen2 parallelism
         compiletype = self.crossgen2_compiletype()
 
         if compiletype == const.CROSSGEN2_SINGLEFILE:
+            assert self.singlefile is not None
             filename, _ = os.path.splitext(self.singlefile)
         elif compiletype == const.CROSSGEN2_COMPOSITE:
+            assert self.compositefile is not None
             dllname, _ = os.path.splitext(os.path.basename(self.compositefile))
             filename, _ = os.path.splitext(dllname)
+        else:
+            getLogger().error("Invalid Crossgen2 compile type")
+            sys.exit(1)
         return filename

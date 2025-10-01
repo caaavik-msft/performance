@@ -1,5 +1,4 @@
 from random import randint
-from typing import Optional
 import uuid
 from azure.storage.blob import BlobClient, ContentSettings
 from azure.storage.queue import QueueClient, TextBase64EncodePolicy
@@ -34,7 +33,7 @@ def get_credential():
         credential = ClientAssertionCredential(TENANT_ID, ARC_CLIENT_ID, lambda: dac.get_token("api://AzureADTokenExchange/.default").token)
         credential.get_token("https://storage.azure.com/.default")
         return credential
-    except ClientAuthenticationError as ex:
+    except ClientAuthenticationError:
         getLogger().info("Unable to use managed identity. Falling back to certificate.")
         certs = get_certificates()
         for cert in certs:
@@ -48,7 +47,7 @@ def get_credential():
 
     raise RuntimeError("Authentication failed with managed identity and certificates. No valid authentication method available.")
 
-def upload(globpath: str, container: str, queue: Optional[str], storage_account_uri: str):
+def upload(globpath: str, container: str, queue: str | None, storage_account_uri: str):
     try:
         credential = get_credential()
         files = glob(globpath, recursive=True)

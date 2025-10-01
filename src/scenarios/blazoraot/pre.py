@@ -1,7 +1,8 @@
 '''
 pre-command
 '''
-import sys, os, subprocess, shutil
+import sys
+import os
 from performance.logger import setup_loggers
 from shared import const
 from shared.precommands import PreCommands

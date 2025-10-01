@@ -1,7 +1,8 @@
 '''
 pre-command
 '''
-import sys, subprocess
+import sys
+import subprocess
 from performance.logger import setup_loggers
 from shared.precommands import PreCommands
 from shared import const

@@ -18,7 +18,8 @@ import os
 import sys
 import time
 import base64
-from typing import Any, Callable, Optional, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 
 def get_machine_architecture():
@@ -46,14 +47,14 @@ def extension():
     return '.exe' if iswin() else ''
 
 def __is_supported_version() -> bool:
-    '''Checks if the script is running on the supported version (>=3.9).'''
-    return sys.version_info >= (3, 9)
+    '''Checks if the script is running on the supported version (>=3.10).'''
+    return sys.version_info >= (3, 10)
 
 
 def validate_supported_runtime():
     '''Raises a RuntimeError exception when the runtime is not supported.'''
     if not __is_supported_version():
-        raise RuntimeError('Python 3.9 or newer is required.')
+        raise RuntimeError('Python 3.10 or newer is required.')
 
 
 def get_python_executable() -> str:
@@ -78,7 +79,7 @@ def remove_directory(path: str) -> None:
         raise TypeError('Undefined path.')
 
     if os.path.isdir(path):
-        def handle_rmtree_errors(func: Callable[[str], None], path: str, excinfo: Any):
+        def handle_rmtree_errors(func: Callable[[str], None], path: str, _: Any):
             """
             Helper function to handle long path errors on Windows.
             """
@@ -145,7 +146,7 @@ def base64_to_bytes(base64_string: str) -> bytes:
     return byte_data
 
 @contextmanager
-def push_dir(path: Optional[str] = None):
+def push_dir(path: str | None = None):
     '''
     Adds the specified location to the top of a location stack, then changes to
     the specified directory.
@@ -170,7 +171,7 @@ def retry_on_exception(
         retry_delay: float = 5,
         retry_delay_multiplier: float = 1,
         retry_exceptions: list[type[Exception]]=[Exception], 
-        raise_exceptions: list[type[Exception]]=[]) -> Optional[TRet]:
+        raise_exceptions: list[type[Exception]]=[]) -> TRet | None:
     '''
     Retries the specified function if it throws an exception.
 
@@ -250,7 +251,7 @@ def set_environment_variable(name: str, value: str, save_to_pipeline: bool = Tru
         __write_pipeline_variable(name, value)
     os.environ[name] = value
 
-def run_msbuild_command(args: list[str], verbose: bool=True, warn_as_error: bool=True, perf_repo_dir: Optional[str] = None) -> str:
+def run_msbuild_command(args: list[str], verbose: bool=True, warn_as_error: bool=True, perf_repo_dir: str | None = None) -> str:
     if perf_repo_dir is None:
         perf_repo_dir = get_repo_root_path()
     msbuild_dir = os.path.join(perf_repo_dir, 'eng', 'common')
@@ -281,7 +282,7 @@ class RunCommand:
     def __init__(
             self,
             cmdline: list[str],
-            success_exit_codes: Optional[list[int]] = None,
+            success_exit_codes: list[int] | None = None,
             verbose: bool = False,
             echo: bool = True,
             retry: int = 0):
@@ -325,7 +326,7 @@ class RunCommand:
     def stdout(self) -> str:
         return self.__stdout.getvalue()
 
-    def __runinternal(self, working_directory: Optional[str] = None) -> tuple[int, str]:
+    def __runinternal(self, working_directory: str | None = None) -> tuple[int, str]:
         should_pipe = self.verbose
         with push_dir(working_directory):
             quoted_cmdline = '$ '
@@ -357,7 +358,7 @@ class RunCommand:
                 return (proc.returncode, quoted_cmdline)
 
 
-    def run(self, working_directory: Optional[str] = None) -> int:
+    def run(self, working_directory: str | None = None) -> int:
         '''Executes specified shell command.'''
 
         retrycount = 0
@@ -374,7 +375,7 @@ class RunCommand:
         
         return returncode
 
-    def run_and_get_stdout(self, working_directory: Optional[str] = None) -> str:
+    def run_and_get_stdout(self, working_directory: str | None = None) -> str:
         '''Executes specified shell command and returns its stdout.'''
         prev_verbose, prev_echo = self.__verbose, self.__echo
 

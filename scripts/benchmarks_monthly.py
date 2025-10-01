@@ -41,6 +41,19 @@ def get_version_from_name(name: str) -> dict[str, str]:
 
     raise Exception('The version specified is not supported', name)
 
+class BenchmarksMonthlyArgs:
+    versions: list[str]
+    device_name: str | None
+    filter: str
+    architecture: str
+    bdn_arguments: str | None
+    no_clean: bool
+    resume: bool
+    dry_run: bool
+    run_once: bool
+    azure_feed_url: str | None
+    internal_build_key: str | None
+
 def add_arguments(parser: ArgumentParser) -> ArgumentParser:
     # Adds new arguments to the specified ArgumentParser object.
 
@@ -117,7 +130,7 @@ def __process_arguments(args: list[str]):
     )
 
     add_arguments(parser)
-    return parser.parse_args(args)
+    return parser.parse_args(args, BenchmarksMonthlyArgs())
 
 def __main(argv: list[str]):
     setup_loggers(verbose=True)

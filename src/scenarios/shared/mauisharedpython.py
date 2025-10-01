@@ -8,7 +8,7 @@ from shared.precommands import PreCommands
 from logging import getLogger
 
 # Remove the aab files as we don't need them, this saves space in the correlation payload
-def remove_aab_files(output_dir="."):
+def remove_aab_files(output_dir: str="."):
     file_list = os.listdir(output_dir)
     for file in file_list:
         if file.endswith(".aab"):
@@ -132,7 +132,7 @@ def extract_latest_dotnet_feed_from_nuget_config(path: str) -> str:
 
 def install_latest_maui(
         precommands: PreCommands, 
-        feed=extract_latest_dotnet_feed_from_nuget_config(path=os.path.join(get_repo_root_path(), "NuGet.config"))
+        feed: str=extract_latest_dotnet_feed_from_nuget_config(path=os.path.join(get_repo_root_path(), "NuGet.config"))
         ):
     '''
         Install the latest maui workload using the provided feed. 

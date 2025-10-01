@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import tarfile
-from typing import Optional, Iterable
+from collections.abc import Iterable
 import zipfile
 
 from performance.common import RunCommand, iswin
@@ -33,7 +33,7 @@ def _set_permissions_recursive(dirs: Iterable[str], mode: int) -> None:
                     getLogger().debug("Failed to set permissions for %s: %s", path, exc)
 
 
-def extract_archive_or_copy(archive_path_or_dir: str, dest_dir: str, prefix: Optional[str] = None) -> None:
+def extract_archive_or_copy(archive_path_or_dir: str, dest_dir: str, prefix: str | None = None) -> None:
     """Extract an archive (.zip / .tar.gz) or copy from a directory into destination.
 
     When a `prefix` is provided only entries whose path starts with that prefix
@@ -129,8 +129,8 @@ def build_coreroot_payload(
     core_root_dest: str,
     os_group: str,
     architecture: str,
-    coreclr_archive_or_dir: Optional[str] = None,
-    libraries_config: Optional[str] = None,
+    coreclr_archive_or_dir: str | None = None,
+    libraries_config: str | None = None,
     cross_build: bool = False,
     clean_artifacts: bool = False,
 ) -> None:
@@ -240,8 +240,8 @@ def build_mono_payload(
     build_config: str,
     architecture: str,
     product_version: str,
-    runtime_repo_dir: Optional[str] = None,
-    mono_archive_or_dir: Optional[str] = None,
+    runtime_repo_dir: str | None = None,
+    mono_archive_or_dir: str | None = None,
 ) -> None:
     """Assemble a Mono testhost payload with corerun host files.
 
@@ -295,12 +295,12 @@ def build_monoaot_payload(
         pack_dir,
         prefix=f"artifacts/bin/microsoft.netcore.app.runtime.linux-{architecture}/Release/",
     )
-    
+
 def build_wasm_payload(
     browser_wasm_archive_or_dir: str,
     payload_parent_dir: str,  # wasm creates three payload directories
-    test_main_js_path: Optional[str] = None,
-    runtime_repo_dir: Optional[str] = None,
+    test_main_js_path: str | None = None,
+    runtime_repo_dir: str | None = None,
 ) -> None:
     """Create the WASM payload directories (dotnet, built-nugets, wasm-data).
 

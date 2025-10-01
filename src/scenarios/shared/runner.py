@@ -15,7 +15,7 @@ from logging import getLogger
 from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter
 from shutil import rmtree
-from typing import Optional
+from typing import Any
 from shared.androidhelper import AndroidHelper
 from shared.androidinstrumentation import AndroidInstrumentationHelper
 from shared.devicepowerconsumption import DevicePowerConsumptionHelper
@@ -40,7 +40,7 @@ class Runner:
         self.traits = traits
         self.testtype = None
         self.sdktype = None
-        self.scenarioname: Optional[str] = None
+        self.scenarioname: str | None = None
         self.coreroot = None
         self.crossgenfile = None
         self.dirs = None
@@ -383,6 +383,7 @@ ex: C:\repos\performance;C:\repos\runtime
             crossgenexe = 'crossgen%s' % extension()
             crossgenargs = self.crossgen_arguments.get_crossgen_command_line()
             coreroot = self.crossgen_arguments.coreroot
+            assert coreroot is not None
             scenario_filename = self.crossgen_arguments.crossgen2_scenario_filename()
 
             self.traits.add_traits(overwrite=True,
@@ -402,6 +403,8 @@ ex: C:\repos\performance;C:\repos\runtime
             startup = StartupWrapper()
             scenario_filename = self.crossgen_arguments.crossgen2_scenario_filename()
             crossgen2args = self.crossgen_arguments.get_crossgen2_command_line()
+            coreroot = self.crossgen_arguments.coreroot
+            assert coreroot is not None
             compiletype = self.crossgen_arguments.crossgen2_compiletype()
             scenarioname = 'Crossgen2 Throughput - %s - %s' % (compiletype, scenario_filename)
             if self.crossgen_arguments.singlethreaded:
@@ -413,13 +416,13 @@ ex: C:\repos\performance;C:\repos\runtime
 
             self.traits.add_traits(overwrite=True,
                                    startupmetric=const.STARTUP_CROSSGEN2,
-                                   workingdir=self.crossgen_arguments.coreroot,
+                                   workingdir=coreroot,
                                    appargs='%s %s' % (os.path.join('crossgen2', 'crossgen2.dll'), ' '.join(crossgen2args)),
                                    affinity=self.affinity
                                    )
             self.traits.add_traits(overwrite=False,
                                    scenarioname=scenarioname,
-                                   apptorun=os.path.join(self.crossgen_arguments.coreroot, 'corerun%s' % extension()),
+                                   apptorun=os.path.join(coreroot, 'corerun%s' % extension()),
                                    environmentvariables='COMPlus_EnableEventLog=1' if not iswin() else '' # turn on clr user events
                                   ) 
             startup.runtests(self.traits)
@@ -466,11 +469,12 @@ ex: C:\repos\performance;C:\repos\runtime
                     '-c'
                 ]
 
-                allResults = []
+                allResults: list[str] = []
                 for i in range(self.testiterations):
                     # Clear logs
                     RunCommand(clearLogsCmd, verbose=True).run()
                     RunCommand(clearProcStatsCmd, verbose=True).run()
+                    assert androidHelper.startappcommand is not None
                     startStats = RunCommand(androidHelper.startappcommand, verbose=True)
                     startStats.run()
                     time.sleep(self.runtimeseconds)
@@ -478,6 +482,7 @@ ex: C:\repos\performance;C:\repos\runtime
                     captureProcStats.run()
 
                     # Save the results and get them from the log
+                    assert androidHelper.stopappcommand is not None
                     RunCommand(androidHelper.stopappcommand, verbose=True).run()
                     
                     # Part of the output we are regexing:
@@ -529,8 +534,6 @@ ex: C:\repos\performance;C:\repos\runtime
             #    Complete
             # Saves: [Intent { cmp=net.dot.HelloAndroid/net.dot.MainActivity }, ok, COLD, net.dot.HelloAndroid/net.dot.MainActivity, 241, 242]
             # Split results (start at 0) (List is Starting (Intent activity), Status (ok...), LaunchState ([HOT, COLD, WARM]), Activity (started activity name), TotalTime(toFrameOne), WaitTime(toFullLoad)) 
-            runSplitRegex = r":\s(.+)"
-            screenWasOff = False
             getLogger().info("Clearing potential previous run nettraces")
             for file in glob.glob(os.path.join(const.TRACEDIR, 'PerfTest', 'runoutput.trace')):
                 if exists(file):   
@@ -561,6 +564,7 @@ ex: C:\repos\performance;C:\repos\runtime
                 for i in range(self.startupiterations):
                     # Clear logs
                     RunCommand(clearLogsCmd, verbose=True).run()
+                    assert androidHelper.startappcommand is not None
                     startStats = RunCommand(androidHelper.startappcommand, verbose=True)
                     startStats.run()
                     # Make sure we cold started (TODO Add other starts)
@@ -568,7 +572,9 @@ ex: C:\repos\performance;C:\repos\runtime
                         getLogger().error("App Start not COLD!")
                         
                     # Save the results and get them from the log
-                    if self.usefullydrawntime: time.sleep(self.fullyDrawnDelaySecMax) # Start command doesn't wait for fully drawn report, force a wait for it. -W in the start command waits for the app to finish initial draw.
+                    if self.usefullydrawntime: 
+                        time.sleep(self.fullyDrawnDelaySecMax) # Start command doesn't wait for fully drawn report, force a wait for it. -W in the start command waits for the app to finish initial draw.
+                    assert androidHelper.stopappcommand is not None
                     RunCommand(androidHelper.stopappcommand, verbose=True).run()
                     if self.usefullydrawntime:
                         retrieveTimeCmd = RunCommand(fullyDrawnRetrieveCmd, verbose=True)
@@ -623,7 +629,13 @@ ex: C:\repos\performance;C:\repos\runtime
 
                         getLogger().info("Tracing with Perfetto")
                         # Get the max TotalTime from the allResults list in seconds
-                        max_startup_time_sec = int(max(int(re.search(r"TotalTime: (\d+)", str(result)).group(1)) for result in allResults) / 1000)
+                        def get_total_time(result: str) -> int:
+                            match = re.search(r"TotalTime: (\d+)", result)
+                            if match:
+                                return int(match.group(1))
+                            else:
+                                raise ValueError("No TotalTime found in result string")
+                        max_startup_time_sec = int(max(get_total_time(result) for result in allResults) / 1000)
                         perfetto_max_trace_time_sec = max_startup_time_sec * 2 # Set the max trace time to be double the max startup time
                         if max_startup_time_sec > 60:
                             getLogger().error(f"Max startup time is greater than 60 seconds (Max startup time: {max_startup_time_sec}), this means something probably went wrong.")
@@ -637,6 +649,7 @@ ex: C:\repos\performance;C:\repos\runtime
 
                         # Run the startup test with the trace running (only once)
                         getLogger().info("Running startup test with Perfetto trace running")
+                        assert androidHelper.startappcommand is not None
                         traced_start = RunCommand(androidHelper.startappcommand, verbose=True)
                         traced_start.run()
 
@@ -792,6 +805,8 @@ ex: C:\repos\performance;C:\repos\runtime
                     app_pid_search = re.search(r"Launched application.*with pid (?P<app_pid>\d+)", runCmdCommand.stdout)
                 else:
                     app_pid_search = re.search(r"The app.*launched with pid (?P<app_pid>\d+)", runCmdCommand.stdout)
+                if not app_pid_search:
+                    raise Exception("App PID not found in the output of the launch command.")
                 app_pid = int(app_pid_search.group('app_pid'))
 
                 logarchive_filename = os.path.join(const.TMPDIR, f'iteration{i}.logarchive')
@@ -844,7 +859,7 @@ ex: C:\repos\performance;C:\repos\runtime
                 logShowCmdCommand = RunCommand(logShowCmd, verbose=True)
                 logShowCmdCommand.run()
 
-                events = []
+                events: list[Any] = []
                 for line in logShowCmdCommand.stdout.splitlines():
                     try:
                         lineData = json.loads(line)
@@ -963,7 +978,7 @@ ex: C:\repos\performance;C:\repos\runtime
             builtdir = const.PUBDIR if os.path.exists(const.PUBDIR) else None
             if not builtdir:
                 builtdir = const.BINDIR if os.path.exists(const.BINDIR) else None
-            if not (self.dirs or builtdir):
+            if not self.dirs or not builtdir:
                 raise Exception("Dirs was not passed in and neither %s nor %s exist" % (const.PUBDIR, const.BINDIR))
             sod.runtests(scenarioname=self.scenarioname, dirs=self.dirs or builtdir, upload_to_perflab_container=self.upload_to_perflab_container, artifact=self.traits.artifact)
 

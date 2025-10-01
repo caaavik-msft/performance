@@ -2,7 +2,6 @@
 C# Console app
 '''
 from shared.runner import TestTraits, Runner
-import os
 
 EXENAME = 'aspwebtemplate'
 

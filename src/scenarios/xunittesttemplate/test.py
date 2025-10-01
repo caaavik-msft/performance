@@ -1,4 +1,3 @@
-import os
 from shared.runner import TestTraits, Runner
 from shared import const
 

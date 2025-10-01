@@ -271,9 +271,11 @@ class AndroidHelper:
         ]
                 
         getLogger().info("Stopping App for uninstall")
+        assert self.stopappcommand is not None
         RunCommand(self.stopappcommand, verbose=True).run()
                 
         getLogger().info("Uninstalling app")
+        assert self.packagename is not None
         uninstallAppCmd = xharnesscommand() + [
             'android',
             'uninstall',

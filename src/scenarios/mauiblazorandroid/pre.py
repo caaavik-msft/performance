@@ -1,7 +1,6 @@
 '''
 pre-command
 '''
-import shutil
 import sys
 from performance.logger import setup_loggers, getLogger
 from shared import const

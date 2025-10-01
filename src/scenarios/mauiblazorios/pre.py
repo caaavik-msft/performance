@@ -1,9 +1,8 @@
 '''
 pre-command
 '''
-import shutil
 import sys
-from performance.logger import setup_loggers, getLogger
+from performance.logger import setup_loggers
 from shared import const
 from shared.mauisharedpython import remove_aab_files, install_latest_maui
 from shared.precommands import PreCommands

@@ -27,7 +27,7 @@ from logging import getLogger
 import os
 import shutil
 import sys
-from typing import Any, Optional
+from typing import Any
 
 from performance.common import get_repo_root_path, validate_supported_runtime, get_artifacts_directory, helixuploadroot
 from performance.logger import setup_loggers
@@ -49,8 +49,8 @@ def init_tools(
         dotnet_versions: list[str],
         target_framework_monikers: list[str],
         verbose: bool,
-        azure_feed_url: Optional[str] = None,
-        internal_build_key: Optional[str] = None) -> None:
+        azure_feed_url: str | None = None,
+        internal_build_key: str | None = None) -> None:
     '''
     Install tools used by this repository into the tools folder.
     This function writes a semaphore file when tools have been successfully
@@ -74,7 +74,20 @@ def init_tools(
         internal_build_key=internal_build_key
     )
 
-def add_arguments(parser: ArgumentParser) -> ArgumentParser:
+class BenchmarkCIArgs(dotnet.CommonDotNetArgs, micro_benchmarks.CommonMicroBenchmarksArgs):
+    dotnet_path: str | None
+    upload_to_perflab_container: bool
+    quiet: bool
+    build_only: bool
+    run_only: bool
+    skip_logger_setup: bool
+    azure_feed_url: str | None
+    internal_build_key: str | None
+    partition: int | None
+    enable_open_telemetry_logger: bool
+    enable_open_telemetry_tracer_console: bool
+
+def add_arguments(parser: ArgumentParser):
     '''Adds new arguments to the specified ArgumentParser object.'''
 
     # Download DotNet Cli
@@ -133,14 +146,7 @@ def add_arguments(parser: ArgumentParser) -> ArgumentParser:
         action='store_true',
         help='Attempts to run the benchmarks without building.',
     )
-    parser.add_argument(
-        '--resume',
-        dest='resume',
-        required=False,
-        default=False,
-        action='store_true',
-        help='Resume a previous run from existing benchmark results',
-    )
+
     parser.add_argument(
         '--skip-logger-setup',
         dest='skip_logger_setup',
@@ -203,7 +209,7 @@ def __process_arguments(args: list[str]):
         epilog=__doc__,
     )
     add_arguments(parser)
-    return parser.parse_args(args)
+    return parser.parse_args(args, BenchmarkCIArgs())
 
 @tracer.start_as_current_span("benchmarks_ci_main")
 def main(argv: list[str]):

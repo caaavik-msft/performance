@@ -2,7 +2,7 @@
 Crossgen2
 '''
 from shared.runner import Runner
-from shared.testtraits import TestTraits, testtypes
+from shared.testtraits import TestTraits
 from shared import const
 
 EXENAME = 'crossgen2'

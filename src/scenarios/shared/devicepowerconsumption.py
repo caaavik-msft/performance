@@ -9,13 +9,14 @@ import json
 from logging import getLogger
 from shutil import copytree
 import time
+from typing import Any
 from performance.common import extension, helixpayload, runninginlab, get_artifacts_directory, get_packages_directory, RunCommand
 from performance.constants import UPLOAD_CONTAINER, UPLOAD_STORAGE_URI, UPLOAD_QUEUE
 from dotnet import CSharpProject, CSharpProjFile
 from shared import const
 from shared.androidhelper import AndroidHelper
 from shared.util import helixworkitempayload, helixuploaddir, getruntimeidentifier, xharness_adb
-from shared.const import *
+from shared.const import TRACEDIR
 from shared.testtraits import TestTraits
 from subprocess import CalledProcessError
 
@@ -26,10 +27,10 @@ class DevicePowerConsumptionHelper(object):
     def __init__(self):
         powerconsumptiondir = 'powerconsumption'
         self.reportjson = os.path.join(TRACEDIR, 'perf-lab-report.json')
-        if helixpayload() and os.path.exists(os.path.join(helixpayload(), powerconsumptiondir)):
-            self._setpowerconsumptionpath(os.path.join(helixpayload(), powerconsumptiondir))
-        elif helixworkitempayload() and os.path.exists(os.path.join(helixworkitempayload(), powerconsumptiondir)):
-            self._setpowerconsumptionpath(os.path.join(helixworkitempayload(), powerconsumptiondir))
+        if (helix_payload := helixpayload()) and os.path.exists(os.path.join(helix_payload, powerconsumptiondir)):
+            self._setpowerconsumptionpath(os.path.join(helix_payload, powerconsumptiondir))
+        elif (helix_workitem_payload := helixworkitempayload()) and os.path.exists(os.path.join(helix_workitem_payload, powerconsumptiondir)):
+            self._setpowerconsumptionpath(os.path.join(helix_workitem_payload, powerconsumptiondir))
         else:
             relpath = os.path.join(get_artifacts_directory(), powerconsumptiondir)
             powerconsumptionproj = os.path.join('..',
@@ -154,7 +155,7 @@ class DevicePowerConsumptionHelper(object):
                 'battery'
             ]
 
-            allResults = []
+            allResults: list[dict[str, Any]] = []
             # Verify that a yepkit board is found
             yepkitCheck = RunCommand(listYepkitBoardsCmd, verbose=True)
             yepkitCheck.run()
@@ -162,10 +163,11 @@ class DevicePowerConsumptionHelper(object):
                 raise EnvironmentError("Yepkit board not connected.")
             RunCommand(reconnectYepKitPowerCmd, verbose=True).run() # Make sure the board is connected
             
-            for i in range(testiterations):
+            for _ in range(testiterations):
                 # Clear logs
                 RunCommand(clearLogsCmd, verbose=True).run()
                 RunCommand(clearBatteryStatsCmd, verbose=True).run()
+                assert androidHelper.startappcommand is not None
                 startStats = RunCommand(androidHelper.startappcommand, verbose=True)
                 startStats.run()
                 preExecutionBatteryInfo = RunCommand(getGeneralBatteryInformation, verbose=True)
@@ -176,6 +178,7 @@ class DevicePowerConsumptionHelper(object):
                 time.sleep(5) # Wait for the phone to reconnect to the commputer
                 postExecutionBatteryInfo = RunCommand(getGeneralBatteryInformation, verbose=True)
                 postExecutionBatteryInfo.run()
+                assert androidHelper.stopappcommand is not None
                 RunCommand(androidHelper.stopappcommand, verbose=True).run()
                 
                 captureUid = RunCommand(getUidOfPackageCmd, verbose=True)
@@ -206,7 +209,7 @@ class DevicePowerConsumptionHelper(object):
                 captureProcStats = RunCommand(captureBatteryStatsCmd, verbose=True)
                 captureProcStats.run()
 
-                capturedValues = {}
+                capturedValues: dict[str, Any] = {}
                 # Get the mAh estimated power use based on the Uid from the battery stats
                 # Explanation of the 4 groups: https://stackoverflow.com/questions/75390939/android-how-to-interpret-pwi-power-use-item-from-battery-stats-dumpsys
                 # Example output section and target:

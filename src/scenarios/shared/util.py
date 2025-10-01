@@ -4,7 +4,7 @@ Utility routines
 import sys
 import os
 import platform
-from os import environ, path
+from os import environ
 from shared import const
 from performance.common import iswin, extension
 

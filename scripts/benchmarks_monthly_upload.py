@@ -1,5 +1,5 @@
 from json import loads, dumps
-from typing import Any, Optional
+from typing import Any
 from urllib.request import urlopen, Request
 from urllib.parse import urlencode
 from urllib.error import HTTPError
@@ -21,7 +21,7 @@ aadUrl = f"https://login.microsoftonline.com/{tenantId}"
 def get_token() -> str:
     path = os.path.expanduser("~/.perfcontrib")
 
-    token: Optional[str] = None
+    token: str | None = None
 
     try:
         if not os.path.exists(path):

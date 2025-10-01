@@ -1,12 +1,10 @@
-'''
+r'''
 pre-command: Example call 'python .\pre.py publish -f net7.0-windows10.0.19041.0 -c Release'
 '''
 import shutil
-import subprocess
 import sys
 import os
-from performance.logger import setup_loggers, getLogger
-from shared.codefixes import insert_after
+from performance.logger import setup_loggers
 from shared.precommands import PreCommands
 from shared import const
 from test import EXENAME

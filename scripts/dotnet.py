@@ -15,7 +15,7 @@ from shutil import rmtree
 from stat import S_IRWXU
 from subprocess import CalledProcessError, check_output
 from sys import argv, platform
-from typing import Any, NamedTuple, Optional
+from typing import NamedTuple
 from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import urlopen
@@ -281,8 +281,8 @@ class CSharpProject:
     def restore(self, 
                 packages_path: str, 
                 verbose: bool,
-                runtime_identifier: Optional[str] = None,
-                args: Optional[list[str]] = None) -> None:
+                runtime_identifier: str | None = None,
+                args: list[str] | None = None) -> None:
         '''
         Calls dotnet to restore the dependencies and tools of the specified
         project.
@@ -317,10 +317,10 @@ class CSharpProject:
               configuration: str,
               verbose: bool,
               packages_path: str,
-              target_framework_monikers: Optional[list[str]] = None,
+              target_framework_monikers: list[str] | None = None,
               output_to_bindir: bool = False,
-              runtime_identifier: Optional[str] = None,
-              args: Optional[list[str]] = None) -> None:
+              runtime_identifier: str | None = None,
+              args: list[str] | None = None) -> None:
         '''Calls dotnet to build the specified project.'''
         if not target_framework_monikers:  # Build all supported frameworks.
             cmdline = [
@@ -377,11 +377,11 @@ class CSharpProject:
             verbose: bool,
             working_directory: str,
             force: bool = False,
-            exename: Optional[str] = None,
-            language: Optional[str] = None,
+            exename: str | None = None,
+            language: str | None = None,
             no_https: bool = False,
             no_restore: bool = True,
-            extra_args: Optional[list[str]] = None
+            extra_args: list[str] | None = None
             ):
         '''
         Creates a new project with the specified template
@@ -427,9 +427,9 @@ class CSharpProject:
                 output_dir: str,
                 verbose: bool,
                 packages_path: str,
-                target_framework_moniker: Optional[str] = None,
-                runtime_identifier: Optional[str] = None,
-                msbuildprops: Optional[list[str]] = None,
+                target_framework_moniker: str | None = None,
+                runtime_identifier: str | None = None,
+                msbuildprops: list[str] | None = None,
                 *args: str
                 ) -> None:
         '''
@@ -477,7 +477,7 @@ class CSharpProject:
         implementationDetails = [ 'DOTNET_CLI_TELEMETRY_OPTOUT', 'DOTNET_MULTILEVEL_LOOKUP', 'DOTNET_ROOT' ]
         for env in environ:
             if env[:len(COMPLUS_PREFIX)].lower() == COMPLUS_PREFIX.lower() or env[:len(DOTNET_PREFIX)].lower() == DOTNET_PREFIX.lower():
-                if not (env.upper() in implementationDetails):
+                if env.upper() not in implementationDetails:
                     getLogger().info('  "%s=%s"', env, environ[env])
         getLogger().info('-' * 50)
 
@@ -518,7 +518,7 @@ def get_framework_version(framework: str) -> FrameworkVersion:
     return version
 
 @tracer.start_as_current_span("dotnet_get_base_path")
-def get_base_path(dotnet_path: Optional[str] = None) -> str:
+def get_base_path(dotnet_path: str | None = None) -> str:
     """Gets the dotnet Host version from the `dotnet --info` command."""
     if not dotnet_path:
         dotnet_path = 'dotnet'
@@ -543,7 +543,7 @@ def get_base_path(dotnet_path: Optional[str] = None) -> str:
 
     return groups.group(1)
 
-def get_sdk_path(dotnet_path: Optional[str] = None) -> str:
+def get_sdk_path(dotnet_path: str | None = None) -> str:
     base_path = get_base_path(dotnet_path)
     sdk_path = path.abspath(path.join(base_path, '..'))
     return sdk_path
@@ -556,8 +556,8 @@ def get_dotnet_path() -> str:
 @tracer.start_as_current_span("dotnet_get_dotnet_version_from_path")
 def get_dotnet_version_from_path(
         framework: str,
-        dotnet_path: Optional[str] = None,
-        sdk_path: Optional[str] = None) -> str:
+        dotnet_path: str | None = None,
+        sdk_path: str | None = None) -> str:
     version = get_framework_version(framework)
 
     sdk_path = get_sdk_path(dotnet_path) if sdk_path is None else sdk_path
@@ -592,8 +592,8 @@ def get_dotnet_version_from_path(
 @tracer.start_as_current_span("dotnet_get_dotnet_version_precise")
 def get_dotnet_version_precise(
         framework: str,
-        dotnet_path: Optional[str] = None,
-        sdk: Optional[str] = None) -> str:
+        dotnet_path: str | None = None,
+        sdk: str | None = None) -> str:
     sdk_path = get_sdk_path(dotnet_path)
     if sdk is None:
         sdk = get_dotnet_version_from_path(framework, dotnet_path, sdk_path)
@@ -605,8 +605,8 @@ def get_dotnet_version_precise(
 @tracer.start_as_current_span("dotnet_get_dotnet_sdk")
 def get_dotnet_sdk(
         framework: str,
-        dotnet_path: Optional[str] = None,
-        sdk: Optional[str] = None) -> str:
+        dotnet_path: str | None = None,
+        sdk: str | None = None) -> str:
     sdk_path = get_sdk_path(dotnet_path)
     sdk = get_dotnet_version_from_path(framework, dotnet_path,
                              sdk_path) if sdk is None else sdk
@@ -629,7 +629,7 @@ def get_repository(repository: str) -> tuple[str, str]:
 def get_commit_date(
     framework: str,
     commit_sha: str,
-    repository: Optional[str] = None
+    repository: str | None = None
 ) -> str:
     '''
     Gets the .NET Core committer date using the GitHub Web API from the
@@ -785,9 +785,9 @@ def install(
         channels: list[str],
         versions: list[str],
         verbose: bool,
-        install_dir: Optional[str] = None,
-        azure_feed_url: Optional[str] = None,
-        internal_build_key: Optional[str] = None) -> None:
+        install_dir: str | None = None,
+        azure_feed_url: str | None = None,
+        internal_build_key: str | None = None) -> None:
     '''
     Downloads dotnet cli into the tools folder.
     '''
@@ -899,6 +899,10 @@ def setup_dotnet(dotnet_path: str):
     if platform != 'win32':
         chmod(path.join(dotnet_path, 'dotnet'), S_IRWXU)
 
+class CommonDotNetArgs:
+    architecture: str
+    dotnet_versions: list[str]
+
 def __add_arguments(parser: ArgumentParser) -> ArgumentParser:
     '''
     Adds new arguments to the specified ArgumentParser object.
@@ -939,8 +943,12 @@ def add_arguments(parser: ArgumentParser) -> ArgumentParser:
     parser = __add_arguments(parser)
     return parser
 
+class DotNetArgs(CommonDotNetArgs):
+    channels: list[str]
+    install_dir: str | None
+    verbose: bool
 
-def __process_arguments(args: list[str]) -> Any:
+def __process_arguments(args: list[str]) -> DotNetArgs:
     parser = ArgumentParser(
         description='DotNet Cli wrapper.',
         allow_abbrev=False
@@ -987,7 +995,7 @@ def __process_arguments(args: list[str]) -> Any:
         help='Turns on verbosity (default "False")',
     )
 
-    return parser.parse_args(args)
+    return parser.parse_args(args, DotNetArgs())
 
 
 def __main(argv: list[str]) -> None:

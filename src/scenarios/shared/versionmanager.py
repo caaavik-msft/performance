@@ -5,7 +5,7 @@ import json
 import os
 import subprocess
 from performance.logger import getLogger
-from datetime import datetime
+from datetime import datetime, timezone
 
 def versions_write_json(versiondict: dict[str, str], outputfile: str = 'versions.json'):
     with open(outputfile, 'w', encoding='utf-8') as file:
@@ -94,7 +94,7 @@ def get_sdk_versions(dll_folder_path: str, windows_powershell: bool = True) -> d
         results[f"PERFLAB_DATA_{sdk}_commit_hash"] = commit
 
     # Add datetime of the SDK installation to the results
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     results["PERFLAB_DATA_sdk_install_datetime"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     return results

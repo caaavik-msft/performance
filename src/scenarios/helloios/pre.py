@@ -1,11 +1,10 @@
 '''
 pre-command
 '''
-import sys
 import os
 from zipfile import ZipFile
 from performance.logger import setup_loggers, getLogger
-from shutil import copyfile, copytree, move
+from shutil import copyfile, copytree
 from shared.const import PUBDIR
 from argparse import ArgumentParser
 

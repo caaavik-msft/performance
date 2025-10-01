@@ -1,4 +1,3 @@
-from typing import Optional, Union
 from dataclasses import dataclass, field
 from datetime import timedelta
 import os
@@ -34,7 +33,7 @@ class PerfSendToHelixArgs:
     env_system_access_token: str = os.environ.get("SYSTEM_ACCESSTOKEN", "")
 
     # Optional for Helix SDK
-    helix_access_token: Optional[str] = None
+    helix_access_token: str | None = None
     helix_pre_commands: list[str] = field(default_factory=list[str])
     helix_post_commands: list[str] = field(default_factory=list[str])
     include_dotnet_cli: bool = False
@@ -43,7 +42,7 @@ class PerfSendToHelixArgs:
     enable_xunit_reporter: bool = False
     wait_for_work_item_completion: bool = True
     creator: str = ""
-    helix_results_destination_dir : Optional[str] = None
+    helix_results_destination_dir : str | None = None
     fail_on_test_failure: bool = True
 
     # Used by our custom .proj files
@@ -56,38 +55,39 @@ class PerfSendToHelixArgs:
     targets_windows: bool = True
 
     # Used by BDN projects
-    work_item_command: Optional[list[str]] = None
-    baseline_work_item_command: Optional[list[str]] = None
-    partition_count: Optional[int] = None
-    bdn_arguments: Optional[list[str]] = None
-    baseline_bdn_arguments: Optional[list[str]] = None
+    work_item_command: list[str] | None = None
+    baseline_work_item_command: list[str] | None = None
+    partition_count: int | None = None
+    bdn_arguments: list[str] | None = None
+    baseline_bdn_arguments: list[str] | None = None
     compare: bool = False
-    compare_command: Optional[list[str]] = None
+    compare_command: list[str] | None = None
     only_sanity_check: bool = False
 
     # Used by scenarios projects
-    runtime_flavor: Optional[str] = None
-    codegen_type: Optional[str] = None
-    linking_type: Optional[str] = None
-    python: Optional[str] = None
-    affinity: Optional[str] = None
-    ios_strip_symbols: Optional[bool] = None
-    ios_llvm_build: Optional[bool] = None
-    scenario_arguments: Optional[list[str]] = None
+    runtime_flavor: str | None = None
+    codegen_type: str | None = None
+    linking_type: str | None = None
+    python: str | None = None
+    affinity: str | None = None
+    ios_strip_symbols: bool | None = None
+    ios_llvm_build: bool | None = None
+    scenario_arguments: list[str] | None = None
 
     def set_environment_variables(self, save_to_pipeline: bool = True):
-        def set_env_var(name: str, value: Union[str, bool, list[str], timedelta, int, None], sep: str = " ", save_to_pipeline: bool=save_to_pipeline):
-            if value is None:
-                # None means don't set it
-                return
-            elif isinstance(value, str):
-                value_str = value
-            elif isinstance(value, bool):
-                value_str = "true" if value else "false"
-            elif isinstance(value, timedelta) or isinstance(value, int):
-                value_str = str(value)
-            else:
-                value_str = sep.join(value)
+        def set_env_var(name: str, value: str | bool | list[str] | timedelta | int | None, sep: str = " ", save_to_pipeline: bool=save_to_pipeline):
+            match value:
+                case None:
+                    # None means don't set it
+                    return
+                case str():
+                    value_str = value
+                case bool():
+                    value_str = "true" if value else "false"
+                case timedelta() | int():
+                    value_str = str(value)
+                case _:
+                    value_str = sep.join(value)
             set_environment_variable(name, value_str, save_to_pipeline=save_to_pipeline)
         set_env_var("Architecture", self.architecture)
         set_env_var("BuildConfig", self.build_config)

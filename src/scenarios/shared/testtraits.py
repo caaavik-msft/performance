@@ -14,7 +14,7 @@ testtypes = [const.STARTUP,
 
 class TestTraits:
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         # initialize traits
         self.exename = ''
         self.scenarioname = ''
@@ -63,7 +63,7 @@ class TestTraits:
             raise Exception("exename cannot be empty")
 
     # add traits if not present or overwrite existing traits if overwrite=True
-    def add_traits(self, overwrite=True, **kwargs: Any):
+    def add_traits(self, overwrite: bool=True, **kwargs: Any):
         for keyword in kwargs:
             if not self.is_valid_trait(keyword):
                 raise Exception("%s is not a valid trait." % keyword)

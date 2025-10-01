@@ -1,4 +1,4 @@
-import os, subprocess
+import os
 import winreg
 from datetime import datetime, timezone
 from shared.runner import TestTraits, Runner
@@ -27,7 +27,7 @@ def main():
     runner = Runner(traits)
     runner.run()
 
-def set_environment(pdn_version):
+def set_environment(pdn_version: str):
     os.environ['DOTNET_ROLL_FORWARD'] = 'LatestMajor'
     os.environ['DOTNET_ROLL_FORWARD_TO_PRERELEASE'] = '1'
     os.environ['PDN_VERSION'] = pdn_version

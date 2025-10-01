@@ -1,7 +1,4 @@
-import os
-from socket import timeout
 from shared.runner import TestTraits, Runner
-from shared import const
 
 EXENAME = 'WinformsNetCorePerfApp1'
 
